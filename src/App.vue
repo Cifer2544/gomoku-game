@@ -73,23 +73,77 @@ const activeTab = ref<TabId>('play')
 }
 
 .app__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
   text-align: center;
 }
 
 .app__title {
-  font-size: 28px;
+  margin: 0;
+  /* 字号随视口收缩，窄屏不会被撑破，宽屏也不会失控放大 */
+  font-size: clamp(28px, 6.6vw, 38px);
   font-weight: 600;
-  letter-spacing: 4px;
-  color: #eef5ff;
-  text-shadow: 0 2px 18px rgba(80, 200, 230, 0.35);
+  line-height: 1.1;
+  letter-spacing: clamp(2px, 1.2vw, 7px);
+  /* 字距会在末字右侧留出等宽空白，补同宽内容边距让字形整体居中 */
+  padding-left: clamp(2px, 1.2vw, 7px);
+  /* 上白下青的竖向渐变，与冷调主题一致 */
+  background: linear-gradient(180deg, #ffffff 0%, #dcf0ff 40%, #8ec6e6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  /*
+   * 文字被裁成透明后 text-shadow 不会生效，
+   * 发光改用 filter 的 drop-shadow，作用在裁切后的字形轮廓上。
+   */
+  filter: drop-shadow(0 3px 18px rgba(72, 190, 226, 0.38));
 }
 
 .app__subtitle {
-  margin-top: 4px;
-  font-size: 13px;
-  letter-spacing: 1px;
-  color: #7f95b0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  color: #8fadc9;
   text-transform: uppercase;
+  text-shadow: 0 1px 12px rgba(60, 170, 210, 0.28);
+}
+
+/* 副标题两侧的渐隐细线，替代孤零零一行小字 */
+.app__subtitle::before,
+.app__subtitle::after {
+  content: '';
+  width: 30px;
+  height: 1px;
+}
+
+.app__subtitle::before {
+  background: linear-gradient(90deg, transparent, rgba(124, 192, 226, 0.55));
+}
+
+.app__subtitle::after {
+  background: linear-gradient(270deg, transparent, rgba(124, 192, 226, 0.55));
+}
+
+/* 窄屏下收紧字距与装饰线长度，保证标题区不溢出 */
+@media (max-width: 420px) {
+  .app__subtitle {
+    gap: 7px;
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  .app__subtitle::before,
+  .app__subtitle::after {
+    width: 18px;
+  }
 }
 
 /* 视图切换：与棋盘工具条的分段按钮保持同一视觉语言 */
