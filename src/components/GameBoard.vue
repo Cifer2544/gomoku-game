@@ -55,6 +55,12 @@ const AI_THINK_DELAY_MS = 100
 
 /* ------------------------------ 棋局状态 ------------------------------ */
 
+/** 一手棋的记录：落子坐标 + 落子方，悔棋时据此回滚 */
+interface MoveRecord {
+  position: Position
+  player: Player
+}
+
 /** 当前棋盘，board[y][x]，初始为 15 × 15 全空 */
 const board = ref<Board>(createEmptyBoard())
 
@@ -67,8 +73,18 @@ const winner = ref<Player | null>(null)
 /** 最近一次落子位置，用于画标记点 */
 const lastMove = ref<Position | null>(null)
 
-/** 已落子数，用于判断平局（225 个点全部填满） */
-const moveCount = ref(0)
+/**
+ * 落子历史（按时间顺序）。
+ * 悔棋靠它回滚：坐标与落子方都在里面，不需要每次落子都快照整个棋盘。
+ */
+const history = ref<MoveRecord[]>([])
+
+/**
+ * 已落子数。
+ * 直接由历史长度推导，而不是单独维护一个计数器——两个数一旦分开，
+ * 悔棋时就容易忘了同步其中一个，进而把平局判定弄错。
+ */
+const moveCount = computed(() => history.value.length)
 
 /** 当前对局模式；默认人机对战，玩家执黑先手 */
 const gameMode = ref<GameMode>('pve')
@@ -121,6 +137,23 @@ const statusText = computed(() => {
   return `轮到${PLAYER_LABEL[currentPlayer.value]}落子`
 })
 
+/** 悔棋按钮是否可用：有落子可撤且对局未结束 */
+const canUndo = computed(() => !isGameOver.value && history.value.length > 0)
+
+/**
+ * 本局一次悔棋要撤销几手。
+ *
+ * - 双人：只撤最近一手；
+ * - 人机：末尾是玩家刚下的一手（AI 还没回应）时撤一手就够了；
+ *   末尾是 AI 的回应时连它一起撤，回到玩家上次落子前的状态。
+ */
+const undoCount = computed(() => {
+  if (!canUndo.value) return 0
+  if (gameMode.value === 'pvp') return 1
+  const last = history.value[history.value.length - 1]
+  return last.player === HUMAN_PLAYER ? 1 : 2
+})
+
 /* ------------------------------ 交互逻辑 ------------------------------ */
 
 /**
@@ -135,7 +168,7 @@ function canPlace(position: Position): boolean {
 
 /**
  * 真正落子（玩家与 AI 共用）。
- * 流程：校验 -> 写入棋盘 -> 记录手数 -> 判胜 -> 未结束则换手 -> 必要时唤醒 AI。
+ * 流程：校验 -> 写入棋盘 -> 记入历史 -> 判胜 -> 未结束则换手 -> 必要时唤醒 AI。
  *
  * @returns 是否成功落下
  */
@@ -148,7 +181,7 @@ function applyMove(position: Position): boolean {
   // 直接修改二维数组中的元素；board 是 ref，深层改动会自动触发视图更新
   board.value[position.y][position.x] = player
   lastMove.value = position
-  moveCount.value += 1
+  history.value.push({ position, player })
 
   if (checkWin(board.value, position, player)) {
     winner.value = player
@@ -241,6 +274,35 @@ function cancelAiTurn(): void {
   isAiThinking.value = false
 }
 
+/**
+ * 悔棋：按历史回滚若干手。
+ *
+ * 人机模式下若 AI 正在思考，先作废那次计算（cancelAiTurn 改令牌），
+ * 否则它算完醒来仍会把棋子落回来，用户会觉得"悔棋没生效"。
+ */
+function undoMove(): void {
+  if (!canUndo.value) return
+
+  cancelAiTurn()
+
+  const steps = Math.min(undoCount.value, history.value.length)
+  // 越往后弹出的是越早的棋，循环结束时它才是要重新落子的一方
+  let restoredPlayer: Player = HUMAN_PLAYER
+
+  for (let i = 0; i < steps; i++) {
+    const record = history.value.pop()
+    if (!record) break
+    board.value[record.position.y][record.position.x] = 'empty'
+    restoredPlayer = record.player
+  }
+
+  lastMove.value = history.value[history.value.length - 1]?.position ?? null
+  currentPlayer.value = restoredPlayer
+  // canUndo 已排除"对局结束"，这里只是兜底：万一将来放松了限制，棋盘不会被锁住
+  winner.value = null
+  hoverPosition.value = null
+}
+
 /** 重置整局：作废 AI 任务、清空棋盘、玩家（黑棋）重新先手 */
 function resetGame(): void {
   cancelAiTurn()
@@ -248,7 +310,7 @@ function resetGame(): void {
   currentPlayer.value = HUMAN_PLAYER
   winner.value = null
   lastMove.value = null
-  moveCount.value = 0
+  history.value = []
   hoverPosition.value = null
 }
 
@@ -295,37 +357,50 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 
 <template>
   <div class="game">
-    <!-- 工具条：模式切换 + 当前状态 + 重新开始 -->
-    <div class="game__toolbar">
-      <div class="mode-switch" role="group" aria-label="对局模式">
-        <button
-          type="button"
-          class="mode-switch__item"
-          :class="{ 'mode-switch__item--active': gameMode === 'pvp' }"
-          :aria-pressed="gameMode === 'pvp'"
-          @click="setMode('pvp')"
-        >
-          双人对战
-        </button>
-        <button
-          type="button"
-          class="mode-switch__item"
-          :class="{ 'mode-switch__item--active': gameMode === 'pve' }"
-          :aria-pressed="gameMode === 'pve'"
-          @click="setMode('pve')"
-        >
-          人机对战
-        </button>
-      </div>
-
-      <div class="game__bar">
+    <!--
+      对局面板：左侧是对局信息（回合 / 手数 / 胜负），右侧是操作
+      （模式切换、悔棋、重新开始）。窄屏时两个区域自动换行居中，
+      所以无论手机还是桌面都不会横向溢出。
+    -->
+    <div class="game__panel">
+      <div class="game__info">
         <span
           class="game__turn"
           :class="`turn--${winner ?? currentPlayer}`"
           aria-hidden="true"
         ></span>
-        <p class="game__status" role="status">{{ statusText }}</p>
-        <button type="button" class="game__reset" @click="resetGame">重新开始</button>
+        <div class="game__text">
+          <p class="game__status" role="status">{{ statusText }}</p>
+          <p class="game__meta">{{ moveCount === 0 ? '尚未落子' : `已下 ${moveCount} 手` }}</p>
+        </div>
+      </div>
+
+      <div class="game__actions">
+        <div class="mode-switch" role="group" aria-label="对局模式">
+          <button
+            type="button"
+            class="mode-switch__item"
+            :class="{ 'mode-switch__item--active': gameMode === 'pvp' }"
+            :aria-pressed="gameMode === 'pvp'"
+            @click="setMode('pvp')"
+          >
+            双人
+          </button>
+          <button
+            type="button"
+            class="mode-switch__item"
+            :class="{ 'mode-switch__item--active': gameMode === 'pve' }"
+            :aria-pressed="gameMode === 'pve'"
+            @click="setMode('pve')"
+          >
+            人机
+          </button>
+        </div>
+
+        <button type="button" class="game__btn" :disabled="!canUndo" @click="undoMove">
+          悔棋
+        </button>
+        <button type="button" class="game__btn" @click="resetGame">重新开始</button>
       </div>
     </div>
 
@@ -404,19 +479,96 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 
 <style scoped>
 .game {
+  /*
+   * 交叉点间距提到容器级：对局面板要和棋盘等宽，就必须读到同一个 --cell。
+   * --board-width 是 15 个格子加左右木质边框的总宽。
+   */
+  --cell: clamp(20px, 4.2vw, 36px);
+  --board-width: calc(var(--cell) * 15 + 20px);
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  width: 100%;
 }
 
-/* ------------------------------ 顶部工具条 ------------------------------ */
+/* ------------------------------ 对局面板 ------------------------------ */
 
-.game__toolbar {
+/*
+ * 一分为二：左边信息（回合 / 手数 / 胜负），右边操作（模式 / 悔棋 / 重开）。
+ * flex-wrap 是防溢出的关键——空间不够时两区自动换行，而不是把按钮挤到屏幕外。
+ */
+.game__panel {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  box-sizing: border-box;
+  width: min(100%, var(--board-width));
+  padding: 10px 12px 10px 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.08), 0 8px 20px rgba(31, 41, 55, 0.07);
+}
+
+.game__info {
+  display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+/* 状态文字可能较长，允许它收缩，避免把操作区顶出面板 */
+.game__text {
+  min-width: 0;
+}
+
+/* 状态栏左侧的小棋子，跟随当前落子方 / 胜者 */
+.game__turn {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.turn--black {
+  background: radial-gradient(circle at 32% 28%, #7c8794, #111111 72%);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.turn--white {
+  background: radial-gradient(circle at 32% 28%, #ffffff, #cfcfcf 78%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), inset 0 -1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.game__status {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game__meta {
+  margin-top: 1px;
+  font-size: 11px;
+  color: #9ca3af;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* ------------------------------ 操作区 ------------------------------ */
+
+.game__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
 }
 
 /* 模式切换：分段式按钮 */
@@ -425,13 +577,12 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: inset 0 0 0 1px rgba(229, 231, 235, 0.9);
+  background: #f3f4f6;
 }
 
 .mode-switch__item {
-  padding: 5px 16px;
-  font-size: 13px;
+  padding: 4px 12px;
+  font-size: 12px;
   color: #6b7280;
   background: transparent;
   border: none;
@@ -451,47 +602,11 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   box-shadow: 0 1px 3px rgba(31, 41, 55, 0.16);
 }
 
-/* ------------------------------ 状态栏 ------------------------------ */
-
-.game__bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px 8px 16px;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.08), 0 6px 16px rgba(31, 41, 55, 0.06);
-}
-
-/* 状态栏左侧的小棋子，跟随当前落子方 / 胜者 */
-.game__turn {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+/* 悔棋与重新开始共用一套按钮样式，禁用态明确区分 */
+.game__btn {
   flex: none;
-  transition: background 0.2s;
-}
-
-.turn--black {
-  background: radial-gradient(circle at 32% 28%, #7c8794, #111111 72%);
-  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.55);
-}
-
-.turn--white {
-  background: radial-gradient(circle at 32% 28%, #ffffff, #cfcfcf 78%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), inset 0 -1px 2px rgba(0, 0, 0, 0.18);
-}
-
-.game__status {
-  min-width: 7.5em;
-  font-size: 14px;
-  color: #374151;
-}
-
-.game__reset {
-  flex: none;
-  padding: 5px 14px;
-  font-size: 13px;
+  padding: 4px 13px;
+  font-size: 12px;
   color: #4b5563;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -500,17 +615,23 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
-.game__reset:hover {
+.game__btn:hover:not(:disabled) {
   color: #111827;
   background: #ffffff;
   border-color: #d1d5db;
 }
 
+.game__btn:disabled {
+  color: #c7ccd4;
+  background: #f7f8f9;
+  border-color: #eef0f2;
+  cursor: not-allowed;
+}
+
 /* ------------------------------ 棋盘木质底座 ------------------------------ */
 
 .board {
-  /* 单个交叉点间距（即格子边长），随视口缩放，保证棋盘不撑破小屏 */
-  --cell: clamp(20px, 4.2vw, 36px);
+  /* --cell 由 .game 统一定义，面板与棋盘要读同一个值才能对齐 */
   --line-color: rgba(91, 58, 26, 0.62);
   --wood-light: #e9c99b;
   --wood-dark: #cf9f66;
@@ -769,8 +890,35 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   }
 }
 
+/*
+ * 中等宽度：面板内容一行放不下（信息 + 三个控件），
+ * 改成上下两行并居中，信息在上一行、操作在下一行。
+ */
+@media (max-width: 640px) {
+  .game__panel {
+    justify-content: center;
+    padding: 10px 12px;
+  }
+
+  .game__info {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .game__actions {
+    flex: 1 1 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
 /* 窄屏时收紧间距，保证 15 路棋盘完整可见 */
 @media (max-width: 480px) {
+  .game {
+    /* 棋盘左右内边距变为 6px，面板宽度跟着一起缩，保持等宽 */
+    --board-width: calc(var(--cell) * 15 + 12px);
+  }
+
   .board {
     padding: 6px;
   }
@@ -780,7 +928,6 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   }
 
   .game__status {
-    min-width: 6em;
     font-size: 13px;
   }
 }
