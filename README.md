@@ -51,7 +51,7 @@ src/
 ├── main.ts                      # 应用入口
 ├── App.vue                      # 页面外壳：标题、标签页、视图切换
 ├── style.css                    # 全局样式与全站背景图层
-├── assets/background.jpg        # 星空背景图
+├── assets/background.webp       # 星空背景图
 ├── components/
 │   ├── GameBoard.vue            # 玩家对战：棋盘、对局状态、悔棋、AI 回合调度
 │   └── AiBattle.vue             # AI 竞技场：自动对弈、记分板、统计持久化
@@ -72,7 +72,7 @@ src/
 npm install      # 安装依赖
 npm run dev      # 开发服务器，默认 http://localhost:5173
 npm run build    # vue-tsc 类型检查 + 打包到 dist/
-npm run preview  # 预览构建产物，默认 http://localhost:4173
+npm run preview  # 预览构建产物，地址 http://localhost:4173/gomoku-game/
 ```
 
 `vite.config.ts` 已为 dev 与 preview 开启 `host: true`，同一局域网内的手机可直接访问：

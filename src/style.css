@@ -58,7 +58,7 @@ body::before {
   z-index: -1;
   background:
     linear-gradient(rgba(8, 14, 27, 0.42), rgba(8, 14, 27, 0.42)),
-    url('./assets/background.jpg') center / cover no-repeat;
+    url('./assets/background.webp') center / cover no-repeat;
   filter: blur(2px);
 }
 
