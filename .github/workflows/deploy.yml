@@ -49,7 +49,8 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        # v5 起内部改用 upload-artifact@v7，运行时已是 Node 24
+        uses: actions/upload-pages-artifact@v5
         with:
           # 与 vite.config.ts 的 outDir 默认值一致；base 已由 base 选项处理
           path: dist
@@ -65,4 +66,5 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        # 与 upload-pages-artifact@v5 配套的 v5 系列
+        uses: actions/deploy-pages@v5
