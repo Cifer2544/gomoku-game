@@ -1,6 +1,10 @@
-# 五子棋 Gomoku
+# 五子棋游戏
 
-基于 Vue 3 + TypeScript + Vite 的网页版五子棋，15 × 15 交叉点棋盘，支持桌面浏览器与手机局域网访问，另含一个双 AI 自动对弈的「AI 竞技场」。
+[🎮 在线试玩](https://cifer2544.github.io/gomoku-game/)
+
+## 项目简介
+
+使用 Vue 3 + TypeScript + Vite 开发的网页版五子棋，包含基础 UI 与 AI 引擎：15 × 15 交叉点棋盘，支持双人对战、人机对战、悔棋，以及双 AI 自动对弈的「AI 竞技场」；纯前端实现，也可通过手机局域网访问。
 
 ## 功能特性
 
@@ -72,6 +76,7 @@ src/
 npm install      # 安装依赖
 npm run dev      # 开发服务器，默认 http://localhost:5173
 npm run build    # vue-tsc 类型检查 + 打包到 dist/
+npm run deploy   # 构建并发布到 gh-pages 分支（GitHub Pages）
 npm run preview  # 预览构建产物，地址 http://localhost:4173/gomoku-game/
 ```
 
