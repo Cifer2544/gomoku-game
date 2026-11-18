@@ -1,0 +1,68 @@
+# 推送到 main 分支即构建并发布到 GitHub Pages
+# 站点地址：https://cifer2544.github.io/gomoku-game/
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # 支持在 Actions 页面手动点一次，便于重发或排查
+  workflow_dispatch:
+
+# 最小权限：读源码 + 写 Pages + 用 OIDC 令牌换取部署凭据
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一条部署流水线。
+# cancel-in-progress 保持 false：部署过程中被掐断会留下半成品，
+# 让新任务排队等旧任务结束更安全。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # Vite 8 要求 ^20.19.0 或 >=22.12.0；22 是当前 LTS
+          node-version: 22
+          # 复用 npm 缓存，省掉每次重下依赖的时间
+          cache: npm
+
+      - name: Install dependencies
+        # npm ci 严格按 package-lock.json 安装，比 npm install 更适合 CI
+        run: npm ci
+
+      - name: Build
+        # 内含 vue-tsc 类型检查；类型有问题时这里会直接失败，不会把坏产物发上线
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 与 vite.config.ts 的 outDir 默认值一致；base 已由 base 选项处理
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    # 绑定 github-pages 环境后，部署地址会显示在 Actions 和仓库首页
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
