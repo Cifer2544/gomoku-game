@@ -314,90 +314,94 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="battle">
-    <!-- 记分板 -->
+    <!-- 记分板 + 操作：压缩成一张卡片，把竖向空间全部让给棋盘 -->
     <section class="panel" aria-label="对局统计">
-      <h2 class="panel__title">AI 对局统计</h2>
-
       <div class="scoreboard">
         <div class="scoreboard__side">
           <span class="scoreboard__dot" :class="`scoreboard__dot--${simpleColor === 'black' ? 'black' : 'white'}`"></span>
-          <p class="scoreboard__name">{{ ENGINE_LABEL.simple }}</p>
-          <p class="scoreboard__value">{{ stats.simpleWins }}</p>
-          <p class="scoreboard__rate" title="平局不计入分母">胜率 {{ simpleRate }}%</p>
+          <span class="scoreboard__name">{{ ENGINE_LABEL.simple }}</span>
         </div>
 
+        <span class="scoreboard__value">{{ stats.simpleWins }}</span>
         <span class="scoreboard__vs">VS</span>
+        <span class="scoreboard__value">{{ stats.qoderWins }}</span>
 
-        <div class="scoreboard__side">
+        <div class="scoreboard__side scoreboard__side--end">
+          <span class="scoreboard__name">{{ ENGINE_LABEL.qoder }}</span>
           <span class="scoreboard__dot" :class="`scoreboard__dot--${simpleColor === 'black' ? 'white' : 'black'}`"></span>
-          <p class="scoreboard__name">{{ ENGINE_LABEL.qoder }}</p>
-          <p class="scoreboard__value">{{ stats.qoderWins }}</p>
-          <p class="scoreboard__rate" title="平局不计入分母">胜率 {{ qoderRate }}%</p>
         </div>
       </div>
 
-      <p class="panel__meta">
-        共 {{ stats.total }} 局 · 平局 {{ stats.draws }} 局 · 有效 {{ decidedGames }} 局 · 本局极简版执{{
-          simpleColor === 'black' ? '黑先手' : '白后手'
-        }}
-      </p>
-      <p class="panel__status" role="status">{{ outcome }}</p>
-      <p class="panel__progress">{{ progressText }}</p>
+      <div class="controls">
+        <button type="button" class="btn btn--primary" :disabled="isPlaying" @click="startGame">
+          {{ isPlaying ? '对局进行中…' : '开始新对局' }}
+        </button>
+        <button type="button" class="btn" :disabled="!isPlaying" @click="stopGame">停止</button>
+        <button type="button" class="btn" :disabled="isPlaying" @click="resetStats">清空统计</button>
+      </div>
+
+      <!-- 胜率、局数、回合进度等次要信息折叠在这里，默认不占高度 -->
+      <details class="more">
+        <summary class="more__summary">详情</summary>
+        <div class="more__body">
+          <span>{{ outcome }}</span>
+          <span>共 {{ stats.total }} 局</span>
+          <span>平局 {{ stats.draws }} 局</span>
+          <span>有效 {{ decidedGames }} 局</span>
+          <span>胜率 极简 {{ simpleRate }}% · Qoder {{ qoderRate }}%</span>
+          <span>本局极简版执{{ simpleColor === 'black' ? '黑先手' : '白后手' }}</span>
+          <span>{{ progressText }}</span>
+        </div>
+      </details>
     </section>
 
-    <!-- 操作区 -->
-    <div class="controls">
-      <button type="button" class="btn btn--primary" :disabled="isPlaying" @click="startGame">
-        {{ isPlaying ? '对局进行中…' : '开始新对局' }}
-      </button>
-      <button type="button" class="btn" :disabled="!isPlaying" @click="stopGame">停止</button>
-      <button type="button" class="btn" :disabled="isPlaying" @click="resetStats">清空统计</button>
-    </div>
-
-    <!-- 棋盘：只渲染，不接受交互 -->
-    <div class="board" :class="{ 'board--playing': isPlaying }">
-      <div class="board__stars" aria-hidden="true">
-        <span
-          v-for="star in STAR_POINTS"
-          :key="`star-${star.x}-${star.y}`"
-          class="star"
-          :style="positionStyle(star)"
-        ></span>
-      </div>
-
-      <div class="board__grid">
-        <template v-for="y in INDEXES" :key="`row-${y}`">
-          <div
-            v-for="x in INDEXES"
-            :key="`${x}-${y}`"
-            class="point"
-            @pointerenter="handlePointEnter({ x, y }, $event)"
-            @pointerleave="handlePointLeave({ x, y }, $event)"
-          >
-            <span
-              v-if="board[y][x] !== 'empty'"
-              class="stone"
-              :class="`stone--${board[y][x]}`"
-            >
-              <span v-if="isLastMove({ x, y })" class="stone__marker"></span>
-            </span>
-          </div>
-        </template>
-
-        <!--
-          幽灵棋子：整个棋盘只渲染一个节点，用绝对定位跟随悬浮交叉点，
-          颜色取当前该落子的一方。
-          pointer-events: none 是关键——它不能拦住下方交叉点的鼠标事件。
-        -->
-        <Transition name="ghost-fade">
+    <!-- 棋盘：与玩家对战共用同一套 --cell，尺寸完全一致 -->
+    <div class="stage">
+      <!-- 棋盘：只渲染，不接受交互 -->
+      <div class="board" :class="{ 'board--playing': isPlaying }">
+        <div class="board__stars" aria-hidden="true">
           <span
-            v-if="ghostPosition"
-            class="ghost"
-            :class="`ghost--${currentTurn}`"
-            :style="positionStyle(ghostPosition)"
-            aria-hidden="true"
+            v-for="star in STAR_POINTS"
+            :key="`star-${star.x}-${star.y}`"
+            class="star"
+            :style="positionStyle(star)"
           ></span>
-        </Transition>
+        </div>
+
+        <div class="board__grid">
+          <template v-for="y in INDEXES" :key="`row-${y}`">
+            <div
+              v-for="x in INDEXES"
+              :key="`${x}-${y}`"
+              class="point"
+              @pointerenter="handlePointEnter({ x, y }, $event)"
+              @pointerleave="handlePointLeave({ x, y }, $event)"
+            >
+              <span
+                v-if="board[y][x] !== 'empty'"
+                class="stone"
+                :class="`stone--${board[y][x]}`"
+              >
+                <span v-if="isLastMove({ x, y })" class="stone__marker"></span>
+              </span>
+            </div>
+          </template>
+
+          <!--
+            幽灵棋子：整个棋盘只渲染一个节点，用绝对定位跟随悬浮交叉点，
+            颜色取当前该落子的一方。
+            pointer-events: none 是关键——它不能拦住下方交叉点的鼠标事件。
+          -->
+          <Transition name="ghost-fade">
+            <span
+              v-if="ghostPosition"
+              class="ghost"
+              :class="`ghost--${currentTurn}`"
+              :style="positionStyle(ghostPosition)"
+              aria-hidden="true"
+            ></span>
+          </Transition>
+        </div>
       </div>
     </div>
   </div>
@@ -405,17 +409,31 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .battle {
+  /*
+   * 棋格尺寸直接沿用玩家对战那一套公式，两个页签的棋盘必须一样大；
+   * 面板宽度也由 --board-width 推出，与棋盘左右对齐。
+   */
+  --cell: clamp(20px, 4.2vw, 36px);
+  --board-width: calc(var(--cell) * 15 + 20px);
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
+  /*
+   * 不再把高度锁死在一屏内：内容放不下时由页面整体纵向滚动，
+   * 与玩家对战页的行为保持一致。
+   */
+  width: 100%;
 }
 
 /* ------------------------------ 统计面板 ------------------------------ */
 
 .panel {
-  width: min(100%, 460px);
-  padding: 18px 20px 14px;
+  flex: none;
+  /* 与棋盘等宽，两个矩形左右对齐 */
+  width: min(100%, var(--board-width));
+  padding: 8px 14px 6px;
   border-radius: 14px;
   /* 与对局面板同一套玻璃卡片配方，两个页签的质感保持一致 */
   background: rgba(13, 23, 41, 0.66);
@@ -423,35 +441,31 @@ onBeforeUnmount(() => {
   box-shadow:
     inset 0 0 0 1px rgba(120, 175, 215, 0.16),
     0 12px 30px rgba(0, 8, 20, 0.45);
-  text-align: center;
 }
 
-.panel__title {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: #dbe7f6;
-}
-
+/* 单行记分板：名字贴两侧，比分与 VS 居中 */
 .scoreboard {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-top: 14px;
 }
 
 .scoreboard__side {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.scoreboard__side--end {
+  justify-content: flex-end;
 }
 
 .scoreboard__dot {
-  width: 12px;
-  height: 12px;
+  flex: none;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
 }
 
@@ -466,62 +480,48 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
+/* 名字过长时省略，不能把布局撑开 */
 .scoreboard__name {
-  font-size: 12px;
-  color: #8fa4bd;
+  font-size: 11.5px;
+  color: #93a9c2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .scoreboard__value {
-  font-size: 30px;
+  flex: none;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1;
   color: #eef5ff;
   font-variant-numeric: tabular-nums;
-}
-
-.scoreboard__rate {
-  font-size: 12px;
-  color: #7f93ad;
+  text-shadow: 0 2px 14px rgba(80, 190, 225, 0.3);
 }
 
 .scoreboard__vs {
   flex: none;
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 700;
   font-style: italic;
+  letter-spacing: 0.5px;
   color: #3f5670;
-}
-
-.panel__meta {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #8195ae;
-}
-
-.panel__status {
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  /* 用背景图里的青绿做强调色，比暖橙更贴合冷调主题 */
-  color: #4fc3d8;
-}
-
-.panel__progress {
-  margin-top: 2px;
-  font-size: 12px;
-  color: #5e7288;
 }
 
 /* ------------------------------ 操作按钮 ------------------------------ */
 
 .controls {
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 6px;
 }
 
 .btn {
-  padding: 8px 18px;
-  font-size: 13px;
+  flex: none;
+  padding: 4px 12px;
+  font-size: 11.5px;
+  line-height: 1.5;
   color: #b9c9dd;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(140, 180, 215, 0.22);
@@ -561,17 +561,82 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
+/* ------------------------------ 详情折叠 ------------------------------ */
+
+.more {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: #7d92aa;
+  text-align: center;
+}
+
+/* 去掉 summary 默认三角，换成右侧随展开旋转的小箭头 */
+.more__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: #6f849d;
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.2s, background 0.2s;
+}
+
+.more__summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 展开指示用纯 CSS 画的三角，不依赖字体里的 ▾ 字形 */
+.more__summary::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-top: -2px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.more[open] .more__summary::after {
+  margin-top: 2px;
+  transform: rotate(-135deg);
+}
+
+.more__summary:hover {
+  color: #a9c2d8;
+  background: rgba(120, 175, 215, 0.1);
+}
+
+.more__body {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 14px;
+  padding-top: 6px;
+  color: #7d92aa;
+}
+
 /* ------------------------------ 棋盘 ------------------------------ */
 
+/* 棋盘舞台：宽随容器，高度由棋盘自身撑开 */
+.stage {
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
 .board {
-  --cell: clamp(16px, 2.4vw, 26px);
+  /* 与玩家对战页完全一致：10px 留白 + 继承自 .battle 的格宽 */
+  --pad: 10px;
   /* 与对局页同一块冷调石板，两个页签的棋盘必须长得一样 */
   --board-light: #2b3a56;
   --board-dark: #1a2438;
   --line-color: rgba(150, 200, 230, 0.32);
 
   position: relative;
-  padding: 10px;
+  padding: var(--pad);
   border-radius: 10px;
   background-color: var(--board-light);
   background-image:
@@ -597,7 +662,8 @@ onBeforeUnmount(() => {
 
 .board__stars {
   position: absolute;
-  inset: 10px;
+  /* 跟随棋盘留白，否则星位会和网格错位 */
+  inset: var(--pad);
   pointer-events: none;
 }
 
@@ -723,16 +789,37 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
-  .board {
-    padding: 6px;
+  .battle {
+    gap: 8px;
   }
 
-  .board__stars {
-    inset: 6px;
+  .panel {
+    padding: 6px 10px 4px;
+  }
+
+  .scoreboard {
+    gap: 5px;
+  }
+
+  .scoreboard__side {
+    gap: 4px;
+  }
+
+  .scoreboard__name {
+    font-size: 10.5px;
   }
 
   .scoreboard__value {
-    font-size: 24px;
+    font-size: 20px;
+  }
+
+  .btn {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .controls {
+    gap: 6px;
   }
 }
 </style>

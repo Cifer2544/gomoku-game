@@ -207,4 +207,24 @@ const activeTab = ref<TabId>('play')
   gap: 32px;
   width: 100%;
 }
+
+/*
+ * 矮窗口（分屏、手机横屏）：外壳整体收紧。
+ * 标题区和大间距在黑盘时占掉一百多像素，用户一进页就要滚很久才看得到棋盘。
+ */
+@media (max-height: 720px) {
+  .app {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .app__header {
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  .app__title {
+    font-size: clamp(24px, 5vw, 30px);
+  }
+}
 </style>
