@@ -19,18 +19,7 @@ import { computed, ref } from 'vue'
 import { getBestMove } from '../logic/ai'
 import { BOARD_SIZE, checkWin, createEmptyBoard, isInsideBoard } from '../logic/rules'
 import type { Board, Player, Position } from '../logic/types'
-
-/** 坐标索引集合 0 ~ 14，供模板双重循环使用（y 行 / x 列） */
-const INDEXES = Array.from({ length: BOARD_SIZE }, (_, index) => index)
-
-/** 星位（天元与四个小目），只做视觉装饰，不影响规则 */
-const STAR_POINTS: readonly Position[] = [
-  { x: 3, y: 3 },
-  { x: 11, y: 3 },
-  { x: 7, y: 7 },
-  { x: 3, y: 11 },
-  { x: 11, y: 11 },
-]
+import { INDEXES, STAR_POINTS } from './boardLayout'
 
 /** 玩家中文名，用于状态栏与结算文案 */
 const PLAYER_LABEL: Record<Player, string> = {

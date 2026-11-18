@@ -18,20 +18,9 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getQoderBestMove, QODER_BATTLE_TIME_MS } from '../logic/ai/qoderEngine'
 import { getSimpleBestMove } from '../logic/ai/simpleEngine'
-import { BOARD_SIZE, checkWin, createEmptyBoard, isInsideBoard } from '../logic/rules'
+import { checkWin, createEmptyBoard, isInsideBoard } from '../logic/rules'
 import type { Board, Player, Position } from '../logic/types'
-
-/** 0 ~ 14，供模板双重循环使用 */
-const INDEXES = Array.from({ length: BOARD_SIZE }, (_, index) => index)
-
-/** 星位，仅做视觉装饰 */
-const STAR_POINTS: readonly Position[] = [
-  { x: 3, y: 3 },
-  { x: 11, y: 3 },
-  { x: 7, y: 7 },
-  { x: 3, y: 11 },
-  { x: 11, y: 11 },
-]
+import { INDEXES, STAR_POINTS } from './boardLayout'
 
 type EngineId = 'simple' | 'qoder'
 
@@ -181,13 +170,13 @@ function recordDraw(): void {
   saveStats()
 }
 
-/** 让浏览器有机会把上一手渲染出来，再开始同步搜索 */
-function yieldToPaint(): Promise<void> {
-  return new Promise<void>(resolve => setTimeout(resolve, 0))
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
+/** 让浏览器有机会把上一手渲染出来，再开始同步搜索 */
+function yieldToPaint(): Promise<void> {
+  return sleep(0)
 }
 
 /**
