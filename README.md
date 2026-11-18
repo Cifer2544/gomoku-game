@@ -76,9 +76,10 @@ src/
 npm install      # 安装依赖
 npm run dev      # 开发服务器，默认 http://localhost:5173
 npm run build    # vue-tsc 类型检查 + 打包到 dist/
-npm run deploy   # 构建并发布到 gh-pages 分支（GitHub Pages）
 npm run preview  # 预览构建产物，地址 http://localhost:4173/gomoku-game/
 ```
+
+推送到 `main` 分支后，GitHub Actions 会自动构建并部署到 GitHub Pages，无需手动执行任何部署命令（工作流见 `.github/workflows/deploy.yml`）。
 
 `vite.config.ts` 已为 dev 与 preview 开启 `host: true`，同一局域网内的手机可直接访问：
 
