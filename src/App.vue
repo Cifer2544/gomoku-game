@@ -80,13 +80,15 @@ const activeTab = ref<TabId>('play')
   font-size: 28px;
   font-weight: 600;
   letter-spacing: 4px;
+  color: #eef5ff;
+  text-shadow: 0 2px 18px rgba(80, 200, 230, 0.35);
 }
 
 .app__subtitle {
   margin-top: 4px;
   font-size: 13px;
   letter-spacing: 1px;
-  color: #9ca3af;
+  color: #7f95b0;
   text-transform: uppercase;
 }
 
@@ -96,8 +98,9 @@ const activeTab = ref<TabId>('play')
   gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: inset 0 0 0 1px rgba(229, 231, 235, 0.9);
+  background: rgba(12, 22, 40, 0.62);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 1px rgba(120, 175, 215, 0.18);
 }
 
 .app__tab {
@@ -107,7 +110,7 @@ const activeTab = ref<TabId>('play')
   gap: 1px;
   padding: 6px 20px;
   font-size: 13px;
-  color: #6b7280;
+  color: #93a7bf;
   background: transparent;
   border: none;
   border-radius: 999px;
@@ -116,24 +119,26 @@ const activeTab = ref<TabId>('play')
 }
 
 .app__tab:hover {
-  color: #111827;
+  color: #e4eefc;
 }
 
 .app__tab-hint {
   font-size: 10px;
   letter-spacing: 0.5px;
-  color: #b6bcc6;
+  color: #5f7488;
 }
 
 .app__tab--active {
-  color: #1f2937;
+  color: #f2f9ff;
   font-weight: 500;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(31, 41, 55, 0.16);
+  background: rgba(58, 150, 180, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(110, 200, 220, 0.34),
+    0 2px 10px rgba(0, 10, 24, 0.4);
 }
 
 .app__tab--active .app__tab-hint {
-  color: #9ca3af;
+  color: #9ec4d4;
 }
 
 /*

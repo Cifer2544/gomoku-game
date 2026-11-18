@@ -19,13 +19,47 @@ body,
   height: 100%;
 }
 
+/*
+ * 底色兜底放在 html 上。
+ * 背景图是 body::before 画的，而伪元素 z-index: -1 会落在 body 背景之下，
+ * 如果 body 自己还有不透明背景色，就会把图整个盖住。
+ */
+html {
+  background-color: #080e1b;
+  /* 让滚动条等原生控件也走暗色，否则浅色滚动条在深色页面上很扎眼 */
+  color-scheme: dark;
+}
+
 body {
   font-family: system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', sans-serif;
   line-height: 1.5;
-  color: #1f2937;
-  background-color: #f5f5f4;
+  color: #e6eefb;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * 背景层。
+ * 单独用一个固定定位的伪元素，而不是给 body 直接挂 background + filter：
+ * filter 加在 body 上会把棋子和文字一起糊掉，只有独立图层才能只虚化背景。
+ *
+ * - inset: -24px：向四面各撑出一圈，否则 blur 会让图层边缘透出底色；
+ * - 蒙层用深海军蓝而不是白色：原图本身就是暗底星空，白色蒙层会把它洗成灰白，
+ *   深色蒙层只压低对比度、保留青绿星带的冷调氛围；
+ * - center / cover：窄屏纵向裁切时始终保住画面中心的星环主体。
+ *
+ * 模糊只给到 2px：这张图的看点就是星带、轨道和标签的纹理，糊过头就剩一团蓝雾了；
+ * 只需一点点柔化，把细碎的高光压平、不让它抢棋盘的视线。
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -24px;
+  z-index: -1;
+  background:
+    linear-gradient(rgba(8, 14, 27, 0.42), rgba(8, 14, 27, 0.42)),
+    url('./assets/background.jpg') center / cover no-repeat;
+  filter: blur(2px);
 }
 
 h1,

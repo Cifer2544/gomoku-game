@@ -509,8 +509,16 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   width: min(100%, var(--board-width));
   padding: 10px 12px 10px 16px;
   border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.08), 0 8px 20px rgba(31, 41, 55, 0.07);
+  /*
+   * 深色玻璃卡片。
+   * 不用纯黑：纯黑面板压在星空上像挖了一个洞，半透明深蓝才能和背景连成一体；
+   * backdrop-filter 把身后的星带模糊掉，文字才有干净的底。
+   */
+  background: rgba(13, 23, 41, 0.66);
+  backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow:
+    inset 0 0 0 1px rgba(120, 175, 215, 0.16),
+    0 12px 30px rgba(0, 8, 20, 0.45);
 }
 
 .game__info {
@@ -536,7 +544,10 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 
 .turn--black {
   background: radial-gradient(circle at 32% 28%, #7c8794, #111111 72%);
-  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.55);
+  /* 暗背景上纯黑会糊成一团，补一圈冷色描边把轮廓勾出来 */
+  box-shadow:
+    inset 0 -1px 2px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(150, 190, 220, 0.45);
 }
 
 .turn--white {
@@ -547,7 +558,7 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 .game__status {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: #e6eefb;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -556,7 +567,7 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 .game__meta {
   margin-top: 1px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #8ba0bb;
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
@@ -577,13 +588,14 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   gap: 3px;
   padding: 3px;
   border-radius: 999px;
-  background: #f3f4f6;
+  background: rgba(4, 11, 22, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(120, 175, 215, 0.12);
 }
 
 .mode-switch__item {
   padding: 4px 12px;
   font-size: 12px;
-  color: #6b7280;
+  color: #8fa4bd;
   background: transparent;
   border: none;
   border-radius: 999px;
@@ -592,14 +604,14 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 }
 
 .mode-switch__item:hover {
-  color: #111827;
+  color: #dce8f8;
 }
 
 .mode-switch__item--active {
-  color: #1f2937;
+  color: #f2f9ff;
   font-weight: 500;
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(31, 41, 55, 0.16);
+  background: rgba(58, 150, 180, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(110, 200, 220, 0.3);
 }
 
 /* 悔棋与重新开始共用一套按钮样式，禁用态明确区分 */
@@ -607,60 +619,76 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   flex: none;
   padding: 4px 13px;
   font-size: 12px;
-  color: #4b5563;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  color: #b9c9dd;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(140, 180, 215, 0.22);
   border-radius: 999px;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
 .game__btn:hover:not(:disabled) {
-  color: #111827;
-  background: #ffffff;
-  border-color: #d1d5db;
+  color: #eaf3ff;
+  background: rgba(90, 180, 210, 0.18);
+  border-color: rgba(140, 205, 230, 0.42);
 }
 
 .game__btn:disabled {
-  color: #c7ccd4;
-  background: #f7f8f9;
-  border-color: #eef0f2;
+  color: rgba(150, 170, 195, 0.38);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(140, 180, 215, 0.1);
   cursor: not-allowed;
 }
 
-/* ------------------------------ 棋盘木质底座 ------------------------------ */
+/* ------------------------------ 棋盘底座 ------------------------------ */
 
 .board {
-  /* --cell 由 .game 统一定义，面板与棋盘要读同一个值才能对齐 */
-  --line-color: rgba(91, 58, 26, 0.62);
-  --wood-light: #e9c99b;
-  --wood-dark: #cf9f66;
+  /*
+   * 冷调棋盘：深蓝灰磨砂石板。
+   * 不再用木色 —— 暖棕和整页的深蓝星空、玻璃面板是两套语言，放在一起像两种材质硬拼。
+   */
+  --board-light: #2b3a56;
+  --board-dark: #1a2438;
+  /* 网格线是淡青白，只负责把交叉点定位出来，不能抢过棋子 */
+  --line-color: rgba(150, 200, 230, 0.32);
 
   position: relative;
   padding: 10px;
   border-radius: 10px;
-  background-color: var(--wood-light);
+  background-color: var(--board-light);
   /*
-   * 木纹效果：两层细密条纹（顺纹 + 横向纹理）叠加在径向渐变上，
-   * 形成"中间亮、四周略深"的受光感，避免纯色死板。
+   * 石面质感分三层叠出来：
+   * 1. 横竖极细的明暗条纹 —— 透明度压到 0.014 / 0.03。调高会变成一条条规律的扫描线，
+   *    像 CRT 屏幕而不像石头，只在贴近屏幕时才能看到一点细密的石面纹理；
+   * 2. 一道 115° 的宽斜带 —— 模拟石材天然的纹路走向，给出明暗起伏；
+   * 3. 左上偏亮的径向渐变 —— 石板才有受光面，右下自然压深。
    */
   background-image:
     repeating-linear-gradient(
-      to bottom,
-      rgba(122, 74, 30, 0.05) 0 1px,
-      transparent 1px 9px
+      0deg,
+      rgba(170, 210, 240, 0.014) 0 1px,
+      transparent 1px 5px
     ),
     repeating-linear-gradient(
-      to bottom,
-      rgba(255, 255, 255, 0.05) 0 1px,
-      transparent 1px 23px
+      90deg,
+      rgba(0, 0, 0, 0.03) 0 1px,
+      transparent 1px 7px
     ),
-    radial-gradient(circle at 30% 18%, var(--wood-light), var(--wood-dark));
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      rgba(150, 190, 230, 0.035) 18%,
+      transparent 34%,
+      rgba(0, 0, 0, 0.05) 52%,
+      transparent 68%
+    ),
+    radial-gradient(circle at 30% 16%, var(--board-light), var(--board-dark) 78%);
   box-shadow:
-    0 10px 24px rgba(80, 50, 20, 0.26),
-    0 2px 4px rgba(80, 50, 20, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-    inset 0 0 32px rgba(120, 70, 25, 0.16);
+    0 22px 46px rgba(0, 6, 18, 0.66),
+    0 0 0 1px rgba(120, 200, 225, 0.22),
+    0 0 64px rgba(56, 180, 210, 0.16),
+    inset 0 0 0 1px rgba(190, 220, 245, 0.14),
+    inset 0 0 40px rgba(0, 10, 25, 0.55);
   user-select: none;
 }
 
@@ -686,7 +714,9 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   height: 6px;
   margin: -3px 0 0 -3px;
   border-radius: 50%;
-  background: rgba(74, 44, 15, 0.72);
+  /* 暗底上星位点改成发微光的青蓝小灯珠，和背景的星带同一种情绪 */
+  background: rgba(130, 205, 230, 0.68);
+  box-shadow: 0 0 6px rgba(90, 200, 230, 0.55);
 }
 
 /* ------------------------------ 网格与棋盘线 ------------------------------ */
@@ -752,19 +782,24 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 
 /* 黑棋：径向高光 + 内阴影 + 外部投影，做出玻璃/云子的立体感 */
 .stone--black {
-  background: radial-gradient(circle at 32% 26%, #8b95a1 0%, #3b3b3b 34%, #0a0a0a 72%);
+  /*
+   * 在深蓝底上不能用纯黑（对比度只剩 1.x:1，棋子会隐进底座）。
+   * 中心提亮到蓝灰、外圈压到接近纯黑的暗青，再补一圈冷色描边把轮廓勾出来。
+   */
+  background: radial-gradient(circle at 32% 26%, #6f839c 0%, #232e3f 30%, #0b1019 72%);
   box-shadow:
-    0 3px 5px rgba(0, 0, 0, 0.42),
-    inset -2px -3px 6px rgba(0, 0, 0, 0.6),
-    inset 2px 2px 5px rgba(255, 255, 255, 0.16);
+    0 3px 7px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(150, 200, 235, 0.32),
+    inset -2px -3px 6px rgba(0, 0, 0, 0.55),
+    inset 2px 2px 6px rgba(170, 210, 240, 0.2);
 }
 
-/* 白棋：高光更强、阴影更浅，避免在木色上"糊"成一片 */
+/* 白棋：高光更强、投影更深，在深蓝底上靠亮度自己跳出来 */
 .stone--white {
-  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #f4f4f4 44%, #c7c7c7 80%);
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #eef3fa 44%, #c3cfdd 82%);
   box-shadow:
-    0 3px 5px rgba(0, 0, 0, 0.28),
-    inset -2px -3px 6px rgba(0, 0, 0, 0.16),
+    0 3px 7px rgba(0, 0, 0, 0.42),
+    inset -2px -3px 6px rgba(40, 62, 90, 0.2),
     inset 2px 2px 5px rgba(255, 255, 255, 0.95);
 }
 
@@ -776,8 +811,11 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   width: 20%;
   height: 20%;
   border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+  /* 冷调棋盘里暖红是唯一的暖色信号，反而更容易被一眼看到 */
+  background: #f24a63;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.65),
+    0 0 8px rgba(242, 74, 99, 0.6);
 }
 
 /* 落子时轻微下沉的动效，让手感更实 */
@@ -813,12 +851,14 @@ function positionStyle(position: Position | null): Record<string, string> | unde
 
 /* 幽灵子用和真实棋子一致的径向渐变，只是不做投影、不带动效 */
 .ghost--black {
-  background: radial-gradient(circle at 32% 26%, #7c8794, #111111 72%);
+  /* 半透明后再压暗会直接消失，所以基色比真实黑子亮一档，并带冷色描边 */
+  background: radial-gradient(circle at 32% 26%, #8ea2ba, #1b2433 72%);
+  box-shadow: 0 0 0 1px rgba(160, 200, 235, 0.3);
 }
 
 .ghost--white {
-  background: radial-gradient(circle at 32% 26%, #ffffff, #cfcfcf 78%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  background: radial-gradient(circle at 32% 26%, #ffffff, #c3cfdd 78%);
+  box-shadow: inset 0 0 0 1px rgba(30, 50, 78, 0.14);
 }
 
 /* 淡入淡出：只动 opacity，不触发重排 */
@@ -844,8 +884,14 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   justify-content: center;
   gap: 8px;
   border-radius: 10px;
-  background: rgba(255, 250, 242, 0.58);
-  backdrop-filter: blur(2px);
+  /*
+   * 不透明度必须够高（0.88）。
+   * 浮层下面是亮色木纹，只盖到七成时深蓝会和木色混成一片脏苔褐色，
+   * 看上去像脏了而不是"赢了"；压到接近不透明，棋盘才退成背景。
+   */
+  background: rgba(6, 13, 26, 0.88);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 1px rgba(120, 200, 220, 0.14);
   animation: result-in 0.22s ease-out;
 }
 
@@ -853,12 +899,13 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   font-size: 26px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #4a2f14;
+  color: #eaf4ff;
+  text-shadow: 0 2px 18px rgba(80, 200, 230, 0.45);
 }
 
 .result__sub {
   font-size: 13px;
-  color: #8a7355;
+  color: #93a8c2;
 }
 
 .result__button {
@@ -866,16 +913,16 @@ function positionStyle(position: Position | null): Record<string, string> | unde
   padding: 8px 22px;
   font-size: 14px;
   color: #ffffff;
-  background: #a1662f;
+  background: #1f7f96;
   border: none;
   border-radius: 999px;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(122, 74, 30, 0.32);
+  box-shadow: 0 4px 14px rgba(31, 127, 150, 0.45);
   transition: background 0.2s, transform 0.2s;
 }
 
 .result__button:hover {
-  background: #8b5626;
+  background: #176a7e;
   transform: translateY(-1px);
 }
 

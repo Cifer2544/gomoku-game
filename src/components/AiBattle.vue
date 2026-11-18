@@ -428,8 +428,12 @@ onBeforeUnmount(() => {
   width: min(100%, 460px);
   padding: 18px 20px 14px;
   border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.08), 0 10px 26px rgba(31, 41, 55, 0.07);
+  /* 与对局面板同一套玻璃卡片配方，两个页签的质感保持一致 */
+  background: rgba(13, 23, 41, 0.66);
+  backdrop-filter: blur(14px) saturate(1.15);
+  box-shadow:
+    inset 0 0 0 1px rgba(120, 175, 215, 0.16),
+    0 12px 30px rgba(0, 8, 20, 0.45);
   text-align: center;
 }
 
@@ -437,7 +441,7 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 1px;
-  color: #374151;
+  color: #dbe7f6;
 }
 
 .scoreboard {
@@ -464,6 +468,8 @@ onBeforeUnmount(() => {
 
 .scoreboard__dot--black {
   background: radial-gradient(circle at 32% 28%, #7c8794, #111111 72%);
+  /* 暗色面板上纯黑会失去轮廓，描一圈冷色边 */
+  box-shadow: 0 0 0 1px rgba(150, 190, 220, 0.45);
 }
 
 .scoreboard__dot--white {
@@ -473,20 +479,20 @@ onBeforeUnmount(() => {
 
 .scoreboard__name {
   font-size: 12px;
-  color: #6b7280;
+  color: #8fa4bd;
 }
 
 .scoreboard__value {
   font-size: 30px;
   font-weight: 700;
   line-height: 1.1;
-  color: #1f2937;
+  color: #eef5ff;
   font-variant-numeric: tabular-nums;
 }
 
 .scoreboard__rate {
   font-size: 12px;
-  color: #9ca3af;
+  color: #7f93ad;
 }
 
 .scoreboard__vs {
@@ -494,26 +500,27 @@ onBeforeUnmount(() => {
   font-size: 13px;
   font-weight: 700;
   font-style: italic;
-  color: #d1d5db;
+  color: #3f5670;
 }
 
 .panel__meta {
   margin-top: 12px;
   font-size: 12px;
-  color: #9ca3af;
+  color: #8195ae;
 }
 
 .panel__status {
   margin-top: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #a1662f;
+  /* 用背景图里的青绿做强调色，比暖橙更贴合冷调主题 */
+  color: #4fc3d8;
 }
 
 .panel__progress {
   margin-top: 2px;
   font-size: 12px;
-  color: #c1c7d0;
+  color: #5e7288;
 }
 
 /* ------------------------------ 操作按钮 ------------------------------ */
@@ -526,41 +533,42 @@ onBeforeUnmount(() => {
 .btn {
   padding: 8px 18px;
   font-size: 13px;
-  color: #4b5563;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  color: #b9c9dd;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(140, 180, 215, 0.22);
   border-radius: 999px;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
 .btn:hover:not(:disabled) {
-  color: #111827;
-  border-color: #d1d5db;
+  color: #eaf3ff;
+  background: rgba(90, 180, 210, 0.18);
+  border-color: rgba(140, 205, 230, 0.42);
 }
 
 .btn:disabled {
-  color: #c1c7d0;
+  color: rgba(150, 170, 195, 0.38);
   cursor: not-allowed;
 }
 
 .btn--primary {
   color: #ffffff;
-  background: #a1662f;
-  border-color: #a1662f;
-  box-shadow: 0 4px 10px rgba(122, 74, 30, 0.28);
+  background: #1f7f96;
+  border-color: #1f7f96;
+  box-shadow: 0 4px 14px rgba(31, 127, 150, 0.45);
 }
 
 .btn--primary:hover:not(:disabled) {
   color: #ffffff;
-  background: #8b5626;
-  border-color: #8b5626;
+  background: #176a7e;
+  border-color: #176a7e;
 }
 
 .btn--primary:disabled {
-  color: #ffffff;
-  background: #c9b39a;
-  border-color: #c9b39a;
+  color: rgba(220, 235, 250, 0.55);
+  background: #2b4457;
+  border-color: #2b4457;
   box-shadow: none;
 }
 
@@ -568,23 +576,33 @@ onBeforeUnmount(() => {
 
 .board {
   --cell: clamp(16px, 2.4vw, 26px);
-  --line-color: rgba(91, 58, 26, 0.62);
-  --wood-light: #e9c99b;
-  --wood-dark: #cf9f66;
+  /* 与对局页同一块冷调石板，两个页签的棋盘必须长得一样 */
+  --board-light: #2b3a56;
+  --board-dark: #1a2438;
+  --line-color: rgba(150, 200, 230, 0.32);
 
   position: relative;
   padding: 10px;
   border-radius: 10px;
-  background-color: var(--wood-light);
+  background-color: var(--board-light);
   background-image:
-    repeating-linear-gradient(to bottom, rgba(122, 74, 30, 0.05) 0 1px, transparent 1px 9px),
-    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 0 1px, transparent 1px 23px),
-    radial-gradient(circle at 30% 18%, var(--wood-light), var(--wood-dark));
+    repeating-linear-gradient(0deg, rgba(170, 210, 240, 0.014) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0 1px, transparent 1px 7px),
+    linear-gradient(
+      115deg,
+      transparent 0%,
+      rgba(150, 190, 230, 0.035) 18%,
+      transparent 34%,
+      rgba(0, 0, 0, 0.05) 52%,
+      transparent 68%
+    ),
+    radial-gradient(circle at 30% 16%, var(--board-light), var(--board-dark) 78%);
   box-shadow:
-    0 10px 24px rgba(80, 50, 20, 0.26),
-    0 2px 4px rgba(80, 50, 20, 0.16),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.35),
-    inset 0 0 32px rgba(120, 70, 25, 0.16);
+    0 22px 46px rgba(0, 6, 18, 0.66),
+    0 0 0 1px rgba(120, 200, 225, 0.22),
+    0 0 64px rgba(56, 180, 210, 0.16),
+    inset 0 0 0 1px rgba(190, 220, 245, 0.14),
+    inset 0 0 40px rgba(0, 10, 25, 0.55);
   user-select: none;
 }
 
@@ -600,7 +618,8 @@ onBeforeUnmount(() => {
   height: 6px;
   margin: -3px 0 0 -3px;
   border-radius: 50%;
-  background: rgba(74, 44, 15, 0.72);
+  background: rgba(130, 205, 230, 0.68);
+  box-shadow: 0 0 6px rgba(90, 200, 230, 0.55);
 }
 
 .board__grid {
@@ -634,18 +653,20 @@ onBeforeUnmount(() => {
 }
 
 .stone--black {
-  background: radial-gradient(circle at 32% 26%, #8b95a1 0%, #3b3b3b 34%, #0a0a0a 72%);
+  /* 深蓝底上纯黑会隐入底座，提亮中心 + 补冷色描边 */
+  background: radial-gradient(circle at 32% 26%, #6f839c 0%, #232e3f 30%, #0b1019 72%);
   box-shadow:
-    0 3px 5px rgba(0, 0, 0, 0.42),
-    inset -2px -3px 6px rgba(0, 0, 0, 0.6),
-    inset 2px 2px 5px rgba(255, 255, 255, 0.16);
+    0 3px 7px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(150, 200, 235, 0.32),
+    inset -2px -3px 6px rgba(0, 0, 0, 0.55),
+    inset 2px 2px 6px rgba(170, 210, 240, 0.2);
 }
 
 .stone--white {
-  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #f4f4f4 44%, #c7c7c7 80%);
+  background: radial-gradient(circle at 32% 26%, #ffffff 0%, #eef3fa 44%, #c3cfdd 82%);
   box-shadow:
-    0 3px 5px rgba(0, 0, 0, 0.28),
-    inset -2px -3px 6px rgba(0, 0, 0, 0.16),
+    0 3px 7px rgba(0, 0, 0, 0.42),
+    inset -2px -3px 6px rgba(40, 62, 90, 0.2),
     inset 2px 2px 5px rgba(255, 255, 255, 0.95);
 }
 
@@ -657,8 +678,10 @@ onBeforeUnmount(() => {
   width: 22%;
   height: 22%;
   border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+  background: #f24a63;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.65),
+    0 0 8px rgba(242, 74, 99, 0.6);
 }
 
 /* ------------------------------ 幽灵棋子 ------------------------------ */
@@ -679,12 +702,13 @@ onBeforeUnmount(() => {
 }
 
 .ghost--black {
-  background: radial-gradient(circle at 32% 26%, #7c8794, #111111 72%);
+  background: radial-gradient(circle at 32% 26%, #8ea2ba, #1b2433 72%);
+  box-shadow: 0 0 0 1px rgba(160, 200, 235, 0.3);
 }
 
 .ghost--white {
-  background: radial-gradient(circle at 32% 26%, #ffffff, #cfcfcf 78%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  background: radial-gradient(circle at 32% 26%, #ffffff, #c3cfdd 78%);
+  box-shadow: inset 0 0 0 1px rgba(30, 50, 78, 0.14);
 }
 
 /* 淡入淡出：只动 opacity，不触发重排 */
